@@ -100,7 +100,7 @@
         </button>
       </nav>
 
-      <!-- Right Action Controls (Brownie Points & API Key) -->
+      <!-- Right Action Controls (Brownie Points & Non-interactive Status) -->
       <div class="flex items-center gap-2">
         <!-- Brownie Points Pill -->
         <div class="flex items-center gap-1 bg-amber-950/40 border border-amber-500/40 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-300 shadow-sm">
@@ -108,10 +108,11 @@
           <span id="brownie-points-display">0 BP</span>
         </div>
 
-        <button onclick="toggleApiModal()" class="text-xs text-slate-400 hover:text-cyan-400 flex items-center gap-1 bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg transition-all">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
-          <span id="api-status-badge" class="hidden sm:inline">AI Active</span>
-        </button>
+        <!-- Static System Badge (No edit options) -->
+        <div class="text-xs text-slate-400 flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg">
+          <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+          <span class="hidden sm:inline text-[11px] font-semibold text-slate-300">AI Active</span>
+        </div>
       </div>
     </div>
   </header>
@@ -391,32 +392,11 @@
 
   </main>
 
-  <!-- GEMINI API CONFIG MODAL -->
-  <div id="api-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-    <div class="kredge-card max-w-md w-full p-6 rounded-2xl border-slate-800 space-y-4">
-      <div class="flex justify-between items-center">
-        <h3 class="font-bold text-white text-sm flex items-center gap-2">
-          <i data-lucide="key" class="w-4 h-4 text-cyan-400"></i>
-          Gemini API Configuration
-        </h3>
-        <button onclick="toggleApiModal()" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-      </div>
-      <p class="text-xs text-slate-400 leading-relaxed">
-        Your API Key powers both real-time quiz Socratic explanations and the AI Doubt Solver.
-      </p>
-      <input id="api-key-input" type="password" placeholder="API Key" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500">
-      <div class="flex justify-end gap-2 pt-1">
-        <button onclick="saveApiKey()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-2 rounded-xl">Save & Close</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     lucide.createIcons();
 
-    // Default API Key
-    let apiKey = localStorage.getItem('kredge_gemini_key') || 'AQ.Ab8RN6LLrd5p1No_eMtfjvEtQEsGKdqMq5YIEomiAKHCzgNZng';
-    localStorage.setItem('kredge_gemini_key', apiKey);
+    // HARDCODED API KEY (NO PUBLIC ACCESS / MODAL)
+    const apiKey = 'AQ.Ab8RN6Jwnu6Gq6in6LGItJ_y4ncvExZcuqT0BpXY6k-v1dTO3w';
 
     // Brownie Points State
     let browniePoints = parseInt(localStorage.getItem('kredge_brownie_points')) || 0;
@@ -466,18 +446,6 @@
     let userAnswers = [];
     let timerInterval = null;
     let secondsElapsed = 0;
-
-    document.getElementById('api-key-input').value = apiKey;
-
-    function toggleApiModal() {
-      document.getElementById('api-modal').classList.toggle('hidden');
-    }
-
-    function saveApiKey() {
-      apiKey = document.getElementById('api-key-input').value.trim();
-      localStorage.setItem('kredge_gemini_key', apiKey);
-      toggleApiModal();
-    }
 
     // Tab Navigation Logic
     function switchTab(tabName) {
@@ -546,7 +514,7 @@
       lucide.createIcons();
     }
 
-    // Dynamic Procedural Engine
+    // Dynamic Procedural Math Engine
     function generateQuestionForTopic(topicId) {
       if (topicId === 'topic_1') {
         const a = Math.floor(Math.random() * 7) + 2;
@@ -704,22 +672,20 @@
       feedbackBox.classList.remove('hidden');
       feedbackText.innerText = "Gemini is analyzing the step-by-step operational mistake...";
 
-      if (apiKey) {
-        try {
-          const prompt = `A Grade 9 Math student answered "${chosenOption}" for the question "${questionObj.question}". Give a concise 2-sentence Socratic hint pointing out their mathematical mistake without giving the answer away directly. Keep it encouraging.`;
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-          });
-          const data = await response.json();
-          if (data.candidates && data.candidates[0].content.parts[0].text) {
-            feedbackText.innerText = data.candidates[0].content.parts[0].text;
-            return;
-          }
-        } catch (e) {
-          console.error("Gemini Error:", e);
+      try {
+        const prompt = `A Grade 9 Math student answered "${chosenOption}" for the question "${questionObj.question}". Give a concise 2-sentence Socratic hint pointing out their mathematical mistake without giving the answer away directly. Keep it encouraging.`;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await response.json();
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          feedbackText.innerText = data.candidates[0].content.parts[0].text;
+          return;
         }
+      } catch (e) {
+        console.error("Gemini Error:", e);
       }
 
       feedbackText.innerText = `Re-check your calculations for ${questionObj.question}. Ensure you isolated variables correctly before performing inverse operations!`;
@@ -839,29 +805,28 @@
       card.classList.remove('hidden');
       textElem.innerText = "Gemini AI is analyzing your doubt step-by-step...";
 
-      if (apiKey) {
-        try {
-          const systemPrompt = `You are the expert KREDGE AI Math Tutor for CBSE Grade 9. Answer the following student doubt clearly, step-by-step, with precise mathematical formulas and simple language: "${doubtText}"`;
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
-          });
-          const data = await response.json();
-          if (data.candidates && data.candidates[0].content.parts[0].text) {
-            textElem.innerText = data.candidates[0].content.parts[0].text;
-            addBrowniePoints(10); // Award +10 BP for asking doubts
-            return;
-          }
-        } catch (e) {
-          console.error("Doubt Solver Error:", e);
+      try {
+        const systemPrompt = `You are the expert KREDGE AI Math Tutor for CBSE Grade 9. Answer the following student doubt clearly, step-by-step, with precise mathematical formulas and simple language: "${doubtText}"`;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+        });
+        const data = await response.json();
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          textElem.innerText = data.candidates[0].content.parts[0].text;
+          addBrowniePoints(10); // Award +10 BP for asking doubts
+          return;
         }
+      } catch (e) {
+        console.error("Doubt Solver Error:", e);
       }
 
-      textElem.innerText = "Error contacting Gemini API. Please check your API key configuration in the header!";
+      textElem.innerText = "Unable to solve doubt at the moment. Please check your network connection!";
     }
 
     renderTopics();
   </script>
 </body>
 </html>
+
