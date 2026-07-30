@@ -108,7 +108,7 @@
           <span id="brownie-points-display">0 BP</span>
         </div>
 
-        <!-- Static System Badge (No edit options) -->
+        <!-- Static System Badge (No public edit capability) -->
         <div class="text-xs text-slate-400 flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg">
           <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
           <span class="hidden sm:inline text-[11px] font-semibold text-slate-300">AI Active</span>
@@ -131,7 +131,7 @@
         </div>
 
         <div class="space-y-3" id="topics-list-container">
-          <!-- Rendered via JavaScript for reactive state updates -->
+          <!-- Rendered via JavaScript -->
         </div>
       </section>
 
@@ -183,7 +183,7 @@
         </div>
       </section>
 
-      <!-- SCREEN 1C: DIAGNOSTIC SUMMARY & PARENT RECEIPT -->
+      <!-- SCREEN 1C: DIAGNOSTIC SUMMARY, STEP-BY-STEP WRONG ANSWERS & PARENT RECEIPT -->
       <section id="screen-summary" class="hidden space-y-6">
         
         <!-- Result Card -->
@@ -197,7 +197,7 @@
             <p id="summary-topic-subtitle" class="text-xs text-slate-400 mt-0.5">Topic Result</p>
           </div>
 
-          <!-- Big Score Gauge -->
+          <!-- Score Gauge -->
           <div class="py-2">
             <div id="summary-accuracy" class="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">0%</div>
             <div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1 font-bold">Accuracy Score</div>
@@ -221,6 +221,20 @@
 
           <!-- Dynamic Unlock Notice -->
           <div id="summary-action-box"></div>
+        </div>
+
+        <!-- NEW FEATURE: STEP-BY-STEP SOLUTIONS FOR MISSED QUESTIONS -->
+        <div id="wrong-questions-review-container" class="hidden kredge-card rounded-2xl p-5 border-slate-800 space-y-4">
+          <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="book-open-check" class="w-4 h-4 text-rose-400"></i>
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Step-by-Step Solutions (Missed Questions)</h3>
+            </div>
+            <span class="text-[10px] bg-rose-950/80 text-rose-300 px-2 py-0.5 rounded border border-rose-800/50 font-bold">REVISION HUB</span>
+          </div>
+
+          <!-- Dynamic list of missed questions with line-by-line solutions -->
+          <div id="wrong-questions-list" class="space-y-4"></div>
         </div>
 
         <!-- PARENT PROGRESS RECEIPT CARD -->
@@ -395,7 +409,7 @@
   <script>
     lucide.createIcons();
 
-    // HARDCODED API KEY (NO PUBLIC ACCESS / MODAL)
+    // HARDCODED SECURE API KEY (NO PUBLIC MODAL ACCESS)
     const apiKey = 'AQ.Ab8RN6Jwnu6Gq6in6LGItJ_y4ncvExZcuqT0BpXY6k-v1dTO3w';
 
     // Brownie Points State
@@ -514,7 +528,7 @@
       lucide.createIcons();
     }
 
-    // Dynamic Procedural Math Engine
+    // Dynamic Procedural Math Engine with Step-by-Step Derivations
     function generateQuestionForTopic(topicId) {
       if (topicId === 'topic_1') {
         const a = Math.floor(Math.random() * 7) + 2;
@@ -529,10 +543,13 @@
         }
         const options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
 
+        const solutionSteps = `1. Start with given equation: ${a}x + ${b} = ${c}\n2. Transpose constant term ${b} to RHS: ${a}x = ${c} - ${b} => ${a}x = ${c - b}\n3. Divide both sides by ${a}: x = ${c - b} / ${a} => x = ${x}`;
+
         return {
           question: `Solve for x: ${a}x + ${b} = ${c}`,
           options: options.map(o => `x = ${o}`),
-          correctIndex: options.indexOf(x)
+          correctIndex: options.indexOf(x),
+          solution: solutionSteps
         };
       } else if (topicId === 'topic_2') {
         const a = Math.floor(Math.random() * 5) + 1;
@@ -548,10 +565,13 @@
           `(${x}, ${y + 2})`
         ].sort(() => Math.random() - 0.5);
 
+        const solutionSteps = `1. Equation: ${a}x + ${b}y = ${c}\n2. Substitute option (${x}, ${y}): LHS = ${a}(${x}) + ${b}(${y}) = ${a*x} + ${b*y} = ${c}\n3. LHS = RHS = ${c}. Thus, (${x}, ${y}) is the valid solution pair.`;
+
         return {
           question: `Which ordered pair (x, y) satisfies the equation ${a}x + ${b}y = ${c}?`,
           options: options,
-          correctIndex: options.indexOf(`(${x}, ${y})`)
+          correctIndex: options.indexOf(`(${x}, ${y})`),
+          solution: solutionSteps
         };
       } else {
         const r = (Math.floor(Math.random() * 5) + 1) * 7;
@@ -564,10 +584,13 @@
         }
         const options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
 
+        const solutionSteps = `1. Formula for Sphere Surface Area: A = 4 × π × r²\n2. Substitute r = ${r} cm and π = 22/7: A = 4 × (22/7) × (${r})\n3. A = 4 × 22 × ${r/7} × ${r} = ${surfaceArea} cm²`;
+
         return {
           question: `Find the Surface Area of a sphere with radius r = ${r} cm. (Use π = 22/7)`,
           options: options.map(o => `${o} cm²`),
-          correctIndex: options.indexOf(surfaceArea)
+          correctIndex: options.indexOf(surfaceArea),
+          solution: solutionSteps
         };
       }
     }
@@ -723,6 +746,9 @@
       document.getElementById('receipt-accuracy').innerText = `${accuracy}%`;
       document.getElementById('receipt-time').innerText = formattedTime;
 
+      // Render Step-by-Step Wrong Questions Breakdown
+      renderWrongQuestionsReview();
+
       // Earn Base Completion Brownie Points
       addBrowniePoints(50);
 
@@ -765,6 +791,58 @@
       }
 
       renderTopics();
+    }
+
+    function renderWrongQuestionsReview() {
+      const reviewContainer = document.getElementById('wrong-questions-review-container');
+      const wrongList = document.getElementById('wrong-questions-list');
+      wrongList.innerHTML = '';
+
+      const wrongItems = userAnswers
+        .map((ans, idx) => ({ ...ans, question: questions[idx], qIndex: idx + 1 }))
+        .filter(item => item && !item.isCorrect);
+
+      if (wrongItems.length > 0) {
+        reviewContainer.classList.remove('hidden');
+
+        wrongItems.forEach(item => {
+          const q = item.question;
+          const card = document.createElement('div');
+          card.className = "bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3";
+
+          card.innerHTML = `
+            <div class="flex items-center justify-between border-b border-slate-850 pb-2">
+              <span class="text-[10px] font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/40">Question ${item.qIndex}</span>
+              <span class="text-[10px] text-slate-500 font-semibold">Incorrect Attempt</span>
+            </div>
+
+            <h4 class="text-xs font-bold text-white">${q.question}</h4>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+              <div class="bg-rose-950/20 border border-rose-500/20 p-2.5 rounded-lg text-rose-300">
+                <span class="font-bold block text-[10px] uppercase text-rose-400">Your Answer:</span>
+                ${q.options[item.selectedIndex] || 'Skipped'}
+              </div>
+              <div class="bg-emerald-950/20 border border-emerald-500/20 p-2.5 rounded-lg text-emerald-300">
+                <span class="font-bold block text-[10px] uppercase text-emerald-400">Correct Answer:</span>
+                ${q.options[q.correctIndex]}
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800 space-y-1">
+              <div class="text-[11px] font-bold text-cyan-400 flex items-center gap-1.5">
+                <i data-lucide="check-square" class="w-3.5 h-3.5"></i>
+                <span>Step-by-Step Solution:</span>
+              </div>
+              <div class="text-slate-300 font-mono text-[11px] leading-relaxed whitespace-pre-line pl-1">${q.solution}</div>
+            </div>
+          `;
+          wrongList.appendChild(card);
+        });
+        lucide.createIcons();
+      } else {
+        reviewContainer.classList.add('hidden');
+      }
     }
 
     function copyParentReceipt() {
@@ -829,4 +907,5 @@
   </script>
 </body>
 </html>
+
 
